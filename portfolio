@@ -10,11 +10,7 @@ import datetime as dt
 start = dt.datetime(2018, 1, 1)
 end = dt.datetime.now()
 import pandas as pd
-import yfinance as yfin
-stocks = yfin.tickers
-stocks
-<module 'yfinance.tickers' from '/usr/local/lib/python3.10/dist-packages/yfinance/tickers.py'>
-import yfinance as yfin
+
 import pandas_datareader as pdr
 from requests.auth import HTTPBasicAuth
 import requests
