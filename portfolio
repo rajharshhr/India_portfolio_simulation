@@ -56,7 +56,7 @@ def plot_financial_data(df, title):
         fig.update_layout({'plot_bgcolor': "white"})
 
     fig.show()
-plot_financial_data(close_price_df, 'Adjusted Closing Prices [GBP(p)]')
+plot_financial_data(close_price_df, 'Adjusted Closing Prices [INR]')
 def price_scaling(raw_prices_df):
     scaled_prices_df = raw_prices_df.copy()
     for i in raw_prices_df.columns[1:]:
@@ -65,7 +65,7 @@ def price_scaling(raw_prices_df):
 price_scaling(close_price_df)
 
 
-plot_financial_data(price_scaling(close_price_df), 'Scaled Stock Prices [GBP]')
+plot_financial_data(price_scaling(close_price_df), 'Scaled Stock Prices [INR]')
 import numpy as np
 import random
 
@@ -305,7 +305,7 @@ import pandas as pd
 from scipy import stats
 import random
 
-url = 'https://raw.githubusercontent.com/rajharshhr/Indiaa_portfolio_simulation/refs/heads/main/StockDetails.csv'
+url = 'https://raw.githubusercontent.com/rajharshhr/India_portfolio_simulation/refs/heads/main/StockDetails.csv'
 close_price_df = pd.read_csv(url,header=0)
 
 # Calculate daily returns (decimal) from close prices
