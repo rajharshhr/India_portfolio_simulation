@@ -1,0 +1,656 @@
+
+Open In Colab
+get_ipython().system('pip install pandas_datareader')
+
+get_ipython().system('pip install pandas_datareader')
+
+from pandas_datareader import data as pdr
+import yfinance as yfin
+import datetime as dt
+start = dt.datetime(2018, 1, 1)
+end = dt.datetime.now()
+import pandas as pd
+import yfinance as yfin
+stocks = yfin.tickers
+stocks
+<module 'yfinance.tickers' from '/usr/local/lib/python3.10/dist-packages/yfinance/tickers.py'>
+import yfinance as yfin
+import pandas_datareader as pdr
+from requests.auth import HTTPBasicAuth
+import requests
+
+url = 'https://raw.githubusercontent.com/rajharshhr/India_portfolio_simulation/refs/heads/main/StockDetails.csv'
+token = 'your_personal_access_token'
+
+response = requests.get(url, auth=HTTPBasicAuth('your_username', token))
+with open('StockDetails.csv', 'wb') as f:
+    f.write(response.content)
+import pandas as pd
+
+url = 'https://raw.githubusercontent.com/rajharshhr/India_portfolio_simulation/refs/heads/main/StockDetails.csv'
+close_price_df = pd.read_csv(url,header=0)
+
+close_price_df
+
+
+import numpy as np
+daily_returns_df = close_price_df.iloc[:, 1:].pct_change() * 100
+daily_returns_df.replace(np.nan, 0, inplace = True)
+daily_returns_df
+
+
+daily_returns_df.insert(0, "Date", close_price_df['Date'])
+daily_returns_df
+
+
+import matplotlib.pyplot as plt
+
+get_ipython().system('pip install seaborn')
+import seaborn as sns
+
+import plotly.express as px
+
+def plot_financial_data(df, title):
+
+    fig = px.line(title = title)
+
+    for i in df.columns[1:]:
+        fig.add_scatter(x = df['Date'], y = df[i], name = i)
+        fig.update_traces(line_width = 5)
+        fig.update_layout({'plot_bgcolor': "white"})
+
+    fig.show()
+plot_financial_data(close_price_df, 'Adjusted Closing Prices [GBP(p)]')
+def price_scaling(raw_prices_df):
+    scaled_prices_df = raw_prices_df.copy()
+    for i in raw_prices_df.columns[1:]:
+          scaled_prices_df[i] = raw_prices_df[i]/raw_prices_df[i][0]
+    return scaled_prices_df
+price_scaling(close_price_df)
+
+
+plot_financial_data(price_scaling(close_price_df), 'Scaled Stock Prices [GBP]')
+import numpy as np
+import random
+
+def generate_portfolio_weights(n):
+    weights = []
+    for i in range(n):
+        weights.append(random.random())
+import numpy as np
+import random
+def generate_portfolio_weights(n):
+    weights = []
+    for i in range(n):
+        weights.append(random.random())
+        weights = weights/np.sum(weights)
+        weights = generate_portfolio_weights(10)
+    print(weights)
+
+def generate_portfolio_weights(n):
+    weights = []
+    for i in range(n):
+        weights.append(random.random())
+
+    # let's make the sum of all weights add up to 1
+    weights = weights/np.sum(weights)
+    return weights
+weights = generate_portfolio_weights(10)
+print(weights)
+
+close_price_df
+
+portfolio_df = close_price_df.copy()
+scaled_df = price_scaling(portfolio_df)
+scaled_df
+
+
+initial_investment = 10000000
+for i, stock in enumerate(scaled_df.columns[1:]):
+    portfolio_df[stock] = weights[i] * scaled_df[stock]  * initial_investment
+portfolio_df.round(1)
+
+
+def asset_allocation(df, weights, initial_investment):
+    portfolio_df = df.copy()
+def asset_allocation(df, weights, initial_investment):
+    portfolio_df = df.copy()
+
+
+    scaled_df = price_scaling(df)
+
+    for i, stock in enumerate(scaled_df.columns[1:]):
+        portfolio_df[stock] = scaled_df[stock] * weights[i] * initial_investment
+
+    portfolio_df['Portfolio Value [INR]'] = portfolio_df[portfolio_df != 'Date'].sum(axis = 1, numeric_only = True)
+
+    # Calculate the portfolio percentage daily return and replace NaNs with zeros
+    portfolio_df['Portfolio Daily Return [%]'] = portfolio_df['Portfolio Value [INR]'].pct_change(1) * 100
+    portfolio_df.replace(np.nan, 0, inplace = True)
+
+    return portfolio_df
+n = len(close_price_df.columns)-1
+print('Number of stocks under consideration = {}'.format(n))
+weights = generate_portfolio_weights(n).round(6)
+print('Portfolio weights = {}'.format(weights))
+Number of stocks under consideration = 10
+
+portfolio_df = asset_allocation(close_price_df, weights, 10000000)
+portfolio_df.round(2)
+
+
+plot_financial_data(portfolio_df[['Date', 'Portfolio Daily Return [%]']], 'Portfolio Percentage Daily Return [%]')
+plot_financial_data(portfolio_df.drop(['Portfolio Value [INR]', 'Portfolio Daily Return [%]'], axis = 1), 'Portfolio positions [INR]')
+plot_financial_data(portfolio_df[['Date', 'Portfolio Value [INR]']], 'Total Portfolio Value [INR]')
+def simulation_engine(weights, initial_investment):
+
+    portfolio_df = asset_allocation(close_price_df, weights, initial_investment)
+
+    return_on_investment = ((portfolio_df['Portfolio Value [INR]'][-1:] -
+                             portfolio_df['Portfolio Value [INR]'][0])/
+                             portfolio_df['Portfolio Value [INR]'][0]) * 100
+
+
+    portfolio_daily_return_df = portfolio_df.drop(columns = ['Date', 'Portfolio Value [INR]', 'Portfolio Daily Return [%]'])
+    portfolio_daily_return_df = portfolio_daily_return_df.pct_change(1)
+
+
+    expected_portfolio_return = np.sum(weights * portfolio_daily_return_df.mean() ) * 252
+
+
+
+    covariance = portfolio_daily_return_df.cov() * 252
+    expected_volatility = np.sqrt(np.dot(weights.T, np.dot(covariance, weights)))
+
+
+    rf = 0.020
+
+
+    sharpe_ratio = (expected_portfolio_return - rf)/expected_volatility
+    return expected_portfolio_return, expected_volatility, sharpe_ratio, portfolio_df['Portfolio Value [INR]'][-1:].values[0], return_on_investment.values[0]
+portfolio_df.round(2)
+
+
+portfolio_df.drop(columns = ['Date', 'Portfolio Value [INR]', 'Portfolio Daily Return [%]'])
+
+
+portfolio_df.round(2)
+
+
+ portfolio_daily_return_df = portfolio_df.drop(columns = ['Date', 'Portfolio Value [INR]', 'Portfolio Daily Return [%]'])
+ portfolio_daily_return_df.round(2)
+
+
+ portfolio_daily_return_df = portfolio_daily_return_df.pct_change(1)
+ portfolio_daily_return_df
+
+
+ portfolio_daily_return_df.dropna()
+
+
+expected_portfolio_return = np.sum(weights * portfolio_daily_return_df.mean() ) * 252
+expected_portfolio_return
+inf
+weights
+
+portfolio_daily_return_df.mean()
+
+portfolio_daily_return_df = portfolio_daily_return_df.replace([np.inf, -np.inf], np.nan)
+portfolio_daily_return_df.mean()
+
+
+
+expected_portfolio_return = np.sum(weights * portfolio_daily_return_df.mean() ) * 252
+expected_portfolio_return
+
+def simulation_engine(weights, initial_investment):
+
+    portfolio_df = asset_allocation(close_price_df, weights, initial_investment)
+
+    return_on_investment = ((portfolio_df['Portfolio Value [INR]'][-1:] -
+                             portfolio_df['Portfolio Value [INR]'][0])/
+                             portfolio_df['Portfolio Value [INR]'][0]) * 100
+
+
+    portfolio_daily_return_df = portfolio_df.drop(columns = ['Date', 'Portfolio Value [INR]', 'Portfolio Daily Return [%]'])
+    portfolio_daily_return_df = portfolio_daily_return_df.pct_change(1)
+    portfolio_daily_return_df = portfolio_daily_return_df.replace([np.inf, -np.inf], np.nan)
+
+
+    expected_portfolio_return = np.sum(weights * portfolio_daily_return_df.mean() ) * 252
+
+
+
+    covariance = portfolio_daily_return_df.cov() * 252
+    expected_volatility = np.sqrt(np.dot(weights.T, np.dot(covariance, weights)))
+
+
+    rf = 0.020
+
+
+    sharpe_ratio = (expected_portfolio_return - rf)/expected_volatility
+    return expected_portfolio_return, expected_volatility, sharpe_ratio, portfolio_df['Portfolio Value [INR]'][-1:].values[0], return_on_investment.values[0]
+initial_investment = 10000000
+portfolio_metrics = simulation_engine(weights, initial_investment)
+print('Expected Portfolio Annual Return = {:.2f}%'.format(portfolio_metrics[0] * 100))
+print('Portfolio Standard Deviation (Volatility) = {:.2f}%'.format(portfolio_metrics[1] * 100))
+print('Sharpe Ratio = {:.2f}'.format(portfolio_metrics[2]))
+print('Portfolio Final Value = ${:.2f}'.format(portfolio_metrics[3]))
+print('Return on Investment = {:.2f}%'.format(portfolio_metrics[4]))
+
+
+
+weights_runs = np.zeros((sim_runs, n))
+
+
+sharpe_ratio_runs = np.zeros(sim_runs)
+
+
+expected_portfolio_returns_runs = np.zeros(sim_runs)
+
+
+volatility_runs = np.zeros(sim_runs)
+
+
+return_on_investment_runs = np.zeros(sim_runs)
+
+
+final_value_runs = np.zeros(sim_runs)
+
+for i in range(sim_runs):
+
+    weights = generate_portfolio_weights(n)
+
+    weights_runs[i,:] = weights
+
+
+    expected_portfolio_returns_runs[i], volatility_runs[i], sharpe_ratio_runs[i], final_value_runs[i], return_on_investment_runs[i] = simulation_engine(weights, initial_investment)
+    print("Simulation Run = {}".format(i))
+    print("Weights = {}, Final Value = ${:.2f}, Sharpe Ratio = {:.2f}".format(weights_runs[i].round(3), final_value_runs[i], sharpe_ratio_runs[i]))
+    print('\n')
+
+
+
+sharpe_ratio_runs
+
+sharpe_ratio_runs.argmax()
+
+sharpe_ratio_runs.max()
+
+weights_runs
+
+weights_runs[sharpe_ratio_runs.argmax(), :]
+
+optimal_portfolio_return, optimal_volatility, optimal_sharpe_ratio, highest_final_value, optimal_return_on_investment = simulation_engine(weights_runs[sharpe_ratio_runs.argmax(), :], initial_investment)
+print('Best Portfolio Metrics Based on {} Monte Carlo Simulation Runs:'.format(sim_runs))
+print('  - Portfolio Expected Annual Return = {:.02f}%'.format(optimal_portfolio_return * 100))
+print('  - Portfolio Standard Deviation (Volatility) = {:.02f}%'.format(optimal_volatility * 100))
+print('  - Sharpe Ratio = {:.02f}'.format(optimal_sharpe_ratio))
+print('  - Final Value = ${:.02f}'.format(highest_final_value))
+print('  - Return on Investment = {:.02f}%'.format(optimal_return_on_investment))
+sim_out_df = pd.DataFrame({'Volatility': volatility_runs.tolist(), 'Portfolio_Return': expected_portfolio_returns_runs.tolist(), 'Sharpe_Ratio': sharpe_ratio_runs.tolist() })
+sim_out_df
+
+
+import plotly.graph_objects as go
+fig = px.scatter(sim_out_df, x = 'Volatility', y = 'Portfolio_Return', color = 'Sharpe_Ratio', hover_data = ['Sharpe_Ratio'] )
+fig.update_layout({'plot_bgcolor': "white"})
+fig.show()
+fig = px.scatter(sim_out_df, x = 'Volatility', y = 'Portfolio_Return', color = 'Sharpe_Ratio', hover_data = ['Sharpe_Ratio'] )
+fig.add_trace(go.Scatter(x = [optimal_volatility], y = [optimal_portfolio_return], mode = 'markers', name = 'Optimal Point', marker = dict(size=[40], color = 'red')))
+fig.update_layout(coloraxis_colorbar = dict(y = 0.7, dtick = 5))
+fig.update_layout({'plot_bgcolor': "white"})
+fig.show()
+import numpy as np
+import pandas as pd
+from scipy import stats
+import numpy as np
+import pandas as pd
+from scipy import stats
+import random
+
+url = 'https://raw.githubusercontent.com/rajharshhr/Indiaa_portfolio_simulation/refs/heads/main/StockDetails.csv'
+close_price_df = pd.read_csv(url,header=0)
+
+# Calculate daily returns (decimal) from close prices
+daily_returns_df = close_price_df.iloc[:, 1:].pct_change() * 100
+daily_returns_df.replace(np.nan, 0, inplace = True)
+daily_returns_df.insert(0, "Date", close_price_df['Date'])
+
+
+def price_scaling(raw_prices_df):
+    scaled_prices_df = raw_prices_df.copy()
+    for i in raw_prices_df.columns[1:]:
+          scaled_prices_df[i] = raw_prices_df[i]/raw_prices_df[i][0]
+    return scaled_prices_df
+
+def asset_allocation(df, weights, initial_investment):
+    portfolio_df = df.copy()
+    scaled_df = price_scaling(df)
+    for i, stock in enumerate(scaled_df.columns[1:]):
+        portfolio_df[stock] = scaled_df[stock] * weights[i] * initial_investment
+    portfolio_df['Portfolio Value [INR]'] = portfolio_df[portfolio_df != 'Date'].sum(axis = 1, numeric_only = True)
+    # Calculate the portfolio percentage daily return and replace NaNs with zeros
+    portfolio_df['Portfolio Daily Return [%]'] = portfolio_df['Portfolio Value [INR]'].pct_change(1) * 100
+    portfolio_df.replace(np.nan, 0, inplace = True)
+    return portfolio_df
+
+# ====================== VALUE AT RISK (VaR) FUNCTIONS ======================
+
+def calculate_portfolio_returns(weights, returns_df, initial_investment=10_000_000):
+    """Calculate daily portfolio returns and final value for given weights"""
+    portfolio_df = asset_allocation(close_price_df, weights, initial_investment)
+    daily_port_returns = portfolio_df['Portfolio Daily Return [%]'] / 100   # convert % to decimal
+    return daily_port_returns.dropna(), portfolio_df['Portfolio Value [INR]'].iloc[-1]
+
+
+def historical_var(portfolio_daily_returns, confidence_level=0.95, portfolio_value=10_000_000):
+    """Historical Simulation VaR - uses actual historical returns distribution"""
+    alpha = 1 - confidence_level
+    var_return = np.percentile(portfolio_daily_returns, alpha * 100)   # e.g., 5th percentile for 95% VaR
+    var_amount = -var_return * portfolio_value                         # positive loss amount
+    return var_return, var_amount
+
+
+def parametric_var(weights, returns_df, confidence_level=0.95, portfolio_value=10_000_000,
+                   risk_free_rate=0.02, days=1):
+    """Parametric (Variance-Covariance) VaR - assumes normal distribution"""
+    # Daily portfolio return stats
+    port_mean = np.sum(weights * returns_df.mean())          # daily mean return
+    cov_matrix = returns_df.cov()
+    port_std = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))   # daily volatility
+
+    # Scale to desired horizon (default 1 day)
+    z_score = stats.norm.ppf(1 - confidence_level)           # e.g., -1.645 for 95%
+    var_return = port_mean * days - z_score * port_std * np.sqrt(days)
+
+    var_amount = -var_return * portfolio_value
+    return var_return, var_amount, port_std
+
+
+def monte_carlo_var(weights, returns_df, num_simulations=10000, confidence_level=0.95,
+                    portfolio_value=10_000_000, time_horizon=1):
+    """Monte Carlo VaR - generates simulated future returns"""
+    mean_returns = returns_df.mean()
+    cov_matrix = returns_df.cov()
+
+    # Cholesky decomposition for correlated simulations
+    L = np.linalg.cholesky(cov_matrix)
+
+    # Simulate returns
+    simulated_returns = np.zeros(num_simulations)
+    for i in range(num_simulations):
+        Z = np.random.normal(size=len(weights))
+        daily_sim_returns = mean_returns + L @ Z
+        simulated_returns[i] = np.dot(weights, daily_sim_returns) * time_horizon
+
+    # VaR from simulated distribution
+    alpha = 1 - confidence_level
+    var_return = np.percentile(simulated_returns, alpha * 100)
+    var_amount = -var_return * portfolio_value
+
+    return var_return, var_amount, simulated_returns
+
+def generate_portfolio_weights(n):
+    weights = []
+    for i in range(n):
+        weights.append(random.random())
+
+    # let's make the sum of all weights add up to 1
+    weights = np.array(weights)/np.sum(weights)
+    return weights
+
+# ====================== EXAMPLE USAGE ======================
+
+# Choose confidence level and portfolio value
+confidence = 0.95          # 95% VaR (5% tail)
+initial_investment = 10_000_000
+
+# Example: Use the best weights from your Monte Carlo simulation
+# best_weights = weights_runs[sharpe_ratio_runs.argmax()]   # uncomment after your sim loop
+
+# For demonstration, generate one set of weights
+np.random.seed(42)
+example_weights = generate_portfolio_weights(len(close_price_df.columns) - 1)
+
+# Get daily returns (decimal) for the portfolio
+daily_port_returns, final_value = calculate_portfolio_returns(example_weights,
+                                                              daily_returns_df.iloc[:, 1:]/100,
+                                                              initial_investment)
+
+print(f"Final Portfolio Value: £{final_value:,.2f}\n")
+
+# 1. Historical VaR
+hist_var_ret, hist_var_amt = historical_var(daily_port_returns, confidence, initial_investment)
+print(f"Historical VaR ({confidence*100:.0f}% confidence, 1-day):")
+print(f"   Return: {hist_var_ret*100:.2f}%")
+print(f"   Loss Amount: £{hist_var_amt:,.2f}\n")
+
+# 2. Parametric VaR
+param_var_ret, param_var_amt, daily_vol = parametric_var(example_weights,
+                                                         daily_returns_df.iloc[:, 1:]/100,
+                                                         confidence, initial_investment)
+print(f"Parametric VaR ({confidence*100:.0f}% confidence, 1-day):")
+print(f"   Return: {param_var_ret*100:.2f}%")
+print(f"   Loss Amount: £{param_var_amt:,.2f}")
+print(f"   Daily Volatility: {daily_vol*100:.2f}%\n")
+
+# 3. Monte Carlo VaR
+mc_var_ret, mc_var_amt, sim_returns = monte_carlo_var(example_weights,
+                                                      daily_returns_df.iloc[:, 1:]/100,
+                                                      num_simulations=5000,
+                                                      confidence_level=confidence,
+                                                      portfolio_value=initial_investment)
+print(f"Monte Carlo VaR ({confidence*100:.0f}% confidence, 1-day, {len(sim_returns)} sims):")
+print(f"   Return: {mc_var_ret*100:.2f}%")
+print(f"   Loss Amount: £{mc_var_amt:,.2f}")
+/tmp/ipykernel_6411/3345542027.py:10: FutureWarning: The default fill_method='pad' in DataFrame.pct_change is deprecated and will be removed in a future version. Either fill in any non-leading NA values prior to calling pct_change or specify 'fill_method=None' to not fill NA values.
+  daily_returns_df = close_price_df.iloc[:, 1:].pct_change() * 100
+
+
+
+var_results = {
+    'Method': ['Historical VaR', 'Parametric VaR', 'Monte Carlo VaR'],
+    'VaR Return (%)': [hist_var_ret * 100, param_var_ret * 100, mc_var_ret * 100],
+    'VaR Loss Amount (£)': [hist_var_amt, param_var_amt, mc_var_amt]
+}
+
+var_summary_df = pd.DataFrame(var_results)
+var_summary_df['VaR Loss Amount (£)'] = var_summary_df['VaR Loss Amount (£)'].round(2)
+var_summary_df['VaR Return (%)'] = var_summary_df['VaR Return (%)'].round(2)
+
+display(var_summary_df)
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+import random
+
+url = 'https://raw.githubusercontent.com/rajharshhr/India_portfolio_simulation/refs/heads/main/StockDetails.csv'
+close_price_df = pd.read_csv(url,header=0)
+
+# Calculate daily returns (decimal) from close prices
+daily_returns_df = close_price_df.iloc[:, 1:].pct_change() * 100
+daily_returns_df.replace(np.nan, 0, inplace = True)
+daily_returns_df.insert(0, "Date", close_price_df['Date'])
+
+def price_scaling(raw_prices_df):
+    scaled_prices_df = raw_prices_df.copy()
+    for i in raw_prices_df.columns[1:]:
+          scaled_prices_df[i] = raw_prices_df[i]/raw_prices_df[i][0]
+    return scaled_prices_df
+
+def asset_allocation(df, weights, initial_investment):
+    portfolio_df = df.copy()
+    scaled_df = price_scaling(df)
+    for i, stock in enumerate(scaled_df.columns[1:]):
+        portfolio_df[stock] = scaled_df[stock] * weights[i] * initial_investment
+    portfolio_df['Portfolio Value [INR]'] = portfolio_df[portfolio_df != 'Date'].sum(axis = 1, numeric_only = True)
+    # Calculate the portfolio percentage daily return and replace NaNs with zeros
+    portfolio_df['Portfolio Daily Return [%]'] = portfolio_df['Portfolio Value [INR]'].pct_change(1) * 100
+    portfolio_df.replace(np.nan, 0, inplace = True)
+    return portfolio_df
+
+def generate_portfolio_weights(n):
+    weights = []
+    for i in range(n):
+        weights.append(random.random())
+
+    # let's make the sum of all weights add up to 1
+    weights = np.array(weights)/np.sum(weights)
+    return weights
+
+def simulation_engine(weights, initial_investment):
+
+    portfolio_df = asset_allocation(close_price_df, weights, initial_investment)
+
+    return_on_investment = ((portfolio_df['Portfolio Value [INR]'][-1:] -
+                             portfolio_df['Portfolio Value [INR]'][0])/
+                             portfolio_df['Portfolio Value [INR]'][0]) * 100
+
+
+    portfolio_daily_return_df = portfolio_df.drop(columns = ['Date', 'Portfolio Value [INR]', 'Portfolio Daily Return [%]'])
+    portfolio_daily_return_df = portfolio_daily_return_df.pct_change(1)
+    portfolio_daily_return_df = portfolio_daily_return_df.replace([np.inf, -np.inf], np.nan)
+
+
+    expected_portfolio_return = np.sum(weights * portfolio_daily_return_df.mean() ) * 252
+
+
+
+    covariance = portfolio_daily_return_df.cov() * 252
+    expected_volatility = np.sqrt(np.dot(weights.T, np.dot(covariance, weights)))
+
+
+    rf = 0.020
+
+
+    sharpe_ratio = (expected_portfolio_return - rf)/expected_volatility
+    return expected_portfolio_return, expected_volatility, sharpe_ratio, portfolio_df['Portfolio Value [GBP]'][-1:].values[0], return_on_investment.values[0]
+
+n = len(close_price_df.columns)-1
+sim_runs = 10000
+initial_investment = 10000000
+
+
+weights_runs = np.zeros((sim_runs, n))
+
+
+sharpe_ratio_runs = np.zeros(sim_runs)
+
+
+expected_portfolio_returns_runs = np.zeros(sim_runs)
+
+
+volatility_runs = np.zeros(sim_runs)
+
+
+return_on_investment_runs = np.zeros(sim_runs)
+
+
+final_value_runs = np.zeros(sim_runs)
+
+for i in range(sim_runs):
+
+    weights = generate_portfolio_weights(n)
+
+    weights_runs[i,:] = weights
+
+
+    expected_portfolio_returns_runs[i], volatility_runs[i], sharpe_ratio_runs[i], final_value_runs[i], return_on_investment_runs[i] = simulation_engine(weights, initial_investment)
+    print("Simulation Run = {}".format(i))
+    print("Weights = {}, Final Value = ${:.2f}, Sharpe Ratio = {:.2f}".format(weights_runs[i].round(3), final_value_runs[i], sharpe_ratio_runs[i]))
+    print('\n')
+/tmp/ipykernel_6411/376136085.py:10: FutureWarning: The default fill_method='pad' in DataFrame.pct_change is deprecated and will be removed in a future version. Either fill in any non-leading NA values prior to calling pct_change or specify 'fill_method=None' to not fill NA values.
+  daily_returns_df = close_price_df.iloc[:, 1:].pct_change() * 100
+
+
+import plotly.express as px
+
+# Get the optimal weights index
+best_idx = sharpe_ratio_runs.argmax()
+best_weights = weights_runs[best_idx]
+
+# Get stock names (excluding the 'Date' column)
+stock_names = close_price_df.columns[1:].tolist()
+
+# Create a DataFrame for plotting
+weights_df = pd.DataFrame({
+    'Stock': stock_names,
+    'Weight': best_weights
+})
+
+# Create the bar chart
+fig = px.bar(weights_df, x='Stock', y='Weight', title='Portfolio Weights of the Best Performing Portfolio')
+fig.update_layout({'plot_bgcolor': "white"})
+fig.show()
+The portfolio with the highest Sharpe ratio has the following characteristics:
+
+# After finding the best portfolio
+best_idx = sharpe_ratio_runs.argmax()
+best_weights = weights_runs[best_idx]
+
+print("=== VaR Analysis for Best Sharpe Portfolio ===")
+
+# Calculate daily portfolio returns and final value for the optimal portfolio
+daily_port_returns_optimal, final_value_optimal = calculate_portfolio_returns(best_weights,
+                                                                           daily_returns_df.iloc[:, 1:]/100,
+                                                                           initial_investment)
+
+# 1. Historical VaR for Optimal Portfolio
+hist_var_ret_optimal, hist_var_amt_optimal = historical_var(daily_port_returns_optimal, confidence, initial_investment)
+print(f"Historical VaR (95% confidence):")
+print(f"   Return: {hist_var_ret_optimal*100:.2f}%")
+print(f"   Loss Amount: £{hist_var_amt_optimal:,.2f}\n")
+
+# 2. Parametric VaR for Optimal Portfolio
+param_var_ret_optimal, param_var_amt_optimal, daily_vol_optimal = parametric_var(best_weights,
+                                                                              daily_returns_df.iloc[:, 1:]/100,
+                                                                              confidence, initial_investment)
+print(f"Parametric VaR (95% confidence):")
+print(f"   Return: {param_var_ret_optimal*100:.2f}%")
+print(f"   Loss Amount: £{param_var_amt_optimal:,.2f}\n")
+
+# 3. Monte Carlo VaR for Optimal Portfolio
+mc_var_ret_optimal, mc_var_amt_optimal, _ = monte_carlo_var(best_weights,
+                                                         daily_returns_df.iloc[:, 1:]/100,
+                                                         num_simulations=5000,
+                                                         confidence_level=confidence,
+                                                         portfolio_value=initial_investment)
+print(f"Monte Carlo VaR (95% confidence):")
+print(f"   Return: {mc_var_ret_optimal*100:.2f}%")
+print(f"   Loss Amount: £{mc_var_amt_optimal:,.2f}\n")
+
+var_optimal_results = {
+    'Method': ['Historical VaR', 'Parametric VaR', 'Monte Carlo VaR'],
+    'VaR Return (%)': [hist_var_ret_optimal * 100, param_var_ret_optimal * 100, mc_var_ret_optimal * 100],
+    'VaR Loss Amount (£)': [hist_var_amt_optimal, param_var_amt_optimal, mc_var_amt_optimal]
+}
+
+var_optimal_summary_df = pd.DataFrame(var_optimal_results)
+var_optimal_summary_df['VaR Loss Amount (£)'] = var_optimal_summary_df['VaR Loss Amount (£)'].round(2)
+var_optimal_summary_df['VaR Return (%)'] = var_optimal_summary_df['VaR Return (%)'].round(2)
+
+display(var_optimal_summary_df)
+
+import plotly.express as px
+import pandas as pd
+
+# Create a DataFrame for the Sharpe ratios
+sharpe_df = pd.DataFrame({'Sharpe_Ratio': sharpe_ratio_runs})
+
+# Create the histogram
+fig = px.histogram(sharpe_df, x='Sharpe_Ratio', nbins=50, title='Distribution of Sharpe Ratios from Monte Carlo Simulation')
+fig.update_layout({'plot_bgcolor': "white"})
+fig.show()
+print('Optimal Portfolio Weights:')
+stock_names = close_price_df.columns[1:].tolist()
+for i, weight in enumerate(best_weights):
+    print(f'  {stock_names[i]}: {weight:.4f}')
+
+print('\nBest Portfolio Metrics:')
+print('  - Portfolio Expected Annual Return = {:.02f}%'.format(optimal_portfolio_return * 100))
+print('  - Portfolio Standard Deviation (Volatility) = {:.02f}%'.format(optimal_volatility * 100))
+print('  - Sharpe Ratio = {:.02f}'.format(optimal_sharpe_ratio))
+print('  - Final Value = ${:.02f}'.format(highest_final_value))
+print('  - Return on Investment = {:.02f}%'.format(optimal_return_on_investment))
